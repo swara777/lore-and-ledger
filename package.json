@@ -1,0 +1,10 @@
+{
+  "name": "lore-and-ledger-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix lore-and-ledger run dev",
+    "build": "npm --prefix lore-and-ledger run build",
+    "start": "npm --prefix lore-and-ledger run start"
+  }
+}
