@@ -54,6 +54,70 @@ export interface LoanRecord {
   notes?: string;
 }
 
+export interface User {
+  id: string;
+  name: string;
+  role: string;
+  title: string;
+  avatar: string;
+  email: string;
+  department: string;
+  sealCode: string;
+  accessTier: string;
+  standing?: string;
+}
+
+export const PRESET_USERS: User[] = [
+  {
+    id: 'ARCH-001',
+    name: 'Archivist Eleanor Vance',
+    role: 'Grand Custodian of Volumes',
+    title: 'Senior Fellow & Head Custodian',
+    avatar: '/images/archivist.png',
+    email: 'eleanor.vance@bodleian.archive.ox',
+    department: 'Special Manuscripts Vault',
+    sealCode: 'SEAL-GR-1888',
+    accessTier: 'Grand Custodian (Unrestricted Master Folio Access)',
+    standing: 'Order of the Golden Quill'
+  },
+  {
+    id: 'ARCH-042',
+    name: 'Julian S. Thorne',
+    role: 'Junior Scriptor',
+    title: 'Assistant Keeper of Natural Philosophy',
+    avatar: '/images/crest.png',
+    email: 'julian.thorne@bodleian.archive.ox',
+    department: 'Mathematical & Astronomical Annals',
+    sealCode: 'SEAL-SCR-1888',
+    accessTier: 'Circulation & Dispatch Desk',
+    standing: 'Magdalen Fellow'
+  },
+  {
+    id: 'ARCH-109',
+    name: 'Arthur Pendelton, MD',
+    role: 'Keeper of Botanical Folios',
+    title: 'Clinical Scholar & Herbal Cataloguer',
+    avatar: '/images/crest.png',
+    email: 'a.pendelton@bodleian.archive.ox',
+    department: 'Alchemy, Medicine & Herbarium',
+    sealCode: 'SEAL-MED-1888',
+    accessTier: 'Herbal Catalog & Restorations',
+    standing: 'Christ Church Scholar'
+  },
+  {
+    id: 'SCH-2025-501',
+    name: 'Clara Oswald',
+    role: 'Visiting Philology Fellow',
+    title: 'Comparative Linguistics Researcher',
+    avatar: '/images/crest.png',
+    email: 'clara.oswald@merton.ox.ac.uk',
+    department: 'Cloister Reading Commons',
+    sealCode: 'SCH-VISIT-1888',
+    accessTier: 'Scholar Reading Access',
+    standing: 'Merton Reader'
+  }
+];
+
 export interface SessionDispatch {
   timestamp: string;
   loanRef: string;
@@ -78,6 +142,10 @@ interface LibraryContextType {
   loans: LoanRecord[];
   sessionDispatches: SessionDispatch[];
   toast: ToastInfo;
+  currentUser: User | null;
+  isAuthenticated: boolean;
+  login: (userData: Partial<User> & { email?: string; password?: string }) => boolean;
+  logout: () => void;
   showToast: (message: string, icon?: string, type?: 'success' | 'warning' | 'info') => void;
   hideToast: () => void;
   lendBook: (scholarId: string, bookCallNo: string, loanDays: number, notes?: string) => { success: boolean; loanRef?: string; message: string };
@@ -407,6 +475,7 @@ const INITIAL_DISPATCHES: SessionDispatch[] = [
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
 
 export function LibraryProvider({ children }: { children: React.ReactNode }) {
+  const [currentUser, setCurrentUser] = useState<User | null>(PRESET_USERS[0]);
   const [books, setBooks] = useState<Book[]>(INITIAL_BOOKS);
   const [scholars, setScholars] = useState<Scholar[]>(INITIAL_SCHOLARS);
   const [loans, setLoans] = useState<LoanRecord[]>(INITIAL_LOANS);
@@ -416,6 +485,65 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     message: '',
     visible: false
   });
+
+  // Hydrate user session from localStorage
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem('lore_archivist_user');
+      if (savedUser) {
+        setCurrentUser(JSON.parse(savedUser));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const login = (userData: Partial<User> & { email?: string; password?: string }) => {
+    // Check if matching preset email
+    let userToSet: User;
+    const foundPreset = PRESET_USERS.find(
+      u => u.email.toLowerCase() === (userData.email || '').toLowerCase() ||
+           u.name.toLowerCase() === (userData.name || '').toLowerCase() ||
+           u.id.toLowerCase() === (userData.id || '').toLowerCase()
+    );
+
+    if (foundPreset) {
+      userToSet = { ...foundPreset, ...userData };
+    } else {
+      userToSet = {
+        id: userData.id || `ARCH-${Math.floor(100 + Math.random() * 900)}`,
+        name: userData.name || (userData.email ? userData.email.split('@')[0].replace('.', ' ') : 'Visiting Custodian'),
+        role: userData.role || 'Visiting Archival Scholar',
+        title: userData.title || 'Archival Registry Reader',
+        avatar: userData.avatar || '/images/crest.png',
+        email: userData.email || 'reader@bodleian.archive.ox',
+        department: userData.department || 'General Scriptorium Hall',
+        sealCode: userData.sealCode || `SEAL-${Math.floor(1000 + Math.random() * 9000)}`,
+        accessTier: userData.accessTier || 'General Stacks Reader',
+        standing: userData.standing || 'In Good Standing'
+      };
+    }
+
+    setCurrentUser(userToSet);
+    try {
+      localStorage.setItem('lore_archivist_user', JSON.stringify(userToSet));
+    } catch {
+      // ignore
+    }
+
+    showToast(`Wax seal verified. Welcome to the Scriptorium, ${userToSet.name}.`, 'verified', 'success');
+    return true;
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('lore_archivist_user');
+    } catch {
+      // ignore
+    }
+    showToast('Scriptorium register closed. Session wax seal intact.', 'lock', 'info');
+  };
 
   const showToast = (message: string, icon = 'check_circle', type: 'success' | 'warning' | 'info' = 'success') => {
     setToast({ message, icon, type, visible: true });
@@ -611,6 +739,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         loans,
         sessionDispatches,
         toast,
+        currentUser,
+        isAuthenticated: !!currentUser,
+        login,
+        logout,
         showToast,
         hideToast,
         lendBook,

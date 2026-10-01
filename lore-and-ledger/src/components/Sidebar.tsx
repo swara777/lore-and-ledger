@@ -9,27 +9,25 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   const navItems = [
-    { label: 'Dashboard', path: '/', icon: 'auto_stories' },
+    { label: 'Dashboard', path: '/dashboard', icon: 'auto_stories' },
     { label: 'Books', path: '/books', icon: 'menu_book' },
     { label: 'Students', path: '/students', icon: 'group' },
     { label: 'Issue Book', path: '/issue-book', icon: 'outbox' },
     { label: 'Return Book', path: '/return-book', icon: 'move_to_inbox' },
     { label: 'Reports', path: '/reports', icon: 'history_edu' },
-    { label: 'Settings', path: '/settings', icon: 'settings' }
+    { label: 'Settings', path: '/settings', icon: 'settings' },
+    { label: 'Scriptorium Login', path: '/login', icon: 'key' }
   ];
 
   const isActive = (itemPath: string) => {
-    if (itemPath === '/') {
-      return pathname === '/' || pathname === '/dashboard';
-    }
-    return pathname.startsWith(itemPath);
+    return pathname === itemPath || pathname.startsWith(itemPath);
   };
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-72 bg-primary text-surface-bright z-50 flex flex-col justify-between shadow-[2px_0_12px_rgba(4,34,23,0.25)] border-r border-secondary/30">
       <div className="flex flex-col">
         {/* Brand Crest Header */}
-        <div className="p-space-lg border-b border-secondary/20 flex items-start gap-space-sm">
+        <Link href="/dashboard" className="p-space-lg border-b border-secondary/20 flex items-start gap-space-sm hover:bg-primary-container/40 transition-colors">
           <div className="relative h-10 w-10 shrink-0 mt-0.5 rounded overflow-hidden bg-primary-container p-1 border border-secondary/30">
             <Image
               src="/images/crest.png"
@@ -48,7 +46,7 @@ export default function Sidebar() {
               Where every book has a story
             </span>
           </div>
-        </div>
+        </Link>
 
         {/* Section Label */}
         <div className="px-space-md py-space-sm">

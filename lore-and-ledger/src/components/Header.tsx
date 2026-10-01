@@ -12,8 +12,9 @@ interface HeaderProps {
 
 export default function Header({ onOpenNewAcquisition }: HeaderProps) {
   const router = useRouter();
-  const { loans, books, searchQuery, setSearchQuery } = useLibrary();
+  const { loans, books, searchQuery, setSearchQuery, currentUser, logout } = useLibrary();
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const overdueCount = loans.filter(l => l.status === 'OVERDUE').length;
 
@@ -33,6 +34,12 @@ export default function Header({ onOpenNewAcquisition }: HeaderProps) {
       router.push(`/books?q=${encodeURIComponent(searchQuery)}`);
       setShowSearchDropdown(false);
     }
+  };
+
+  const handleLogout = () => {
+    setShowProfileMenu(false);
+    logout();
+    router.push('/login');
   };
 
   return (
@@ -135,26 +142,104 @@ export default function Header({ onOpenNewAcquisition }: HeaderProps) {
 
         <div className="h-8 w-px bg-secondary/20 mx-space-xs" />
 
-        {/* Archivist Identity */}
-        <div className="flex items-center gap-space-sm">
-          <div className="text-right">
-            <div className="font-headline-sm text-body-md font-semibold text-on-surface leading-tight">
-              Archivist Eleanor Vance
-            </div>
-            <div className="font-stamp-label text-[10px] text-secondary tracking-wider uppercase">
-              Grand Custodian of Volumes
-            </div>
+        {/* Archivist Identity Dropdown / Sign-In Button */}
+        {currentUser ? (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              className="flex items-center gap-space-sm p-1 rounded-lg hover:bg-surface-container transition-colors cursor-pointer text-left"
+            >
+              <div className="text-right hidden md:block">
+                <div className="font-headline-sm text-body-md font-semibold text-on-surface leading-tight truncate max-w-[180px]">
+                  {currentUser.name}
+                </div>
+                <div className="font-stamp-label text-[10px] text-secondary tracking-wider uppercase truncate max-w-[180px]">
+                  {currentUser.role}
+                </div>
+              </div>
+              <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-secondary/60 shadow bg-secondary/20 shrink-0">
+                <Image
+                  src={currentUser.avatar || '/images/crest.png'}
+                  alt={currentUser.name}
+                  width={36}
+                  height={36}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <span className="material-symbols-outlined text-secondary text-[18px]">
+                arrow_drop_down
+              </span>
+            </button>
+
+            {/* Profile Dropdown Menu */}
+            {showProfileMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowProfileMenu(false)}
+                />
+                <div className="absolute right-0 top-12 w-72 bg-surface-container-lowest border-2 border-secondary/30 rounded-xl shadow-2xl p-3 z-50 flex flex-col gap-2">
+                  <div className="pb-2 border-b border-secondary/20">
+                    <div className="font-headline-sm text-[16px] font-semibold text-primary">
+                      {currentUser.name}
+                    </div>
+                    <div className="font-body-sm text-[12px] text-on-surface-variant italic">
+                      {currentUser.email}
+                    </div>
+                    <div className="mt-1 flex items-center gap-1.5 font-code-ledger text-[11px] text-secondary">
+                      <span className="material-symbols-outlined text-[13px]">verified</span>
+                      <span>{currentUser.sealCode}</span>
+                    </div>
+                  </div>
+
+                  <div className="py-1 flex flex-col gap-1 text-[13px] font-body-sm">
+                    <Link
+                      href="/login"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2 p-2 rounded hover:bg-surface-container text-on-surface transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-secondary">
+                        switch_account
+                      </span>
+                      <span>Switch Archival Roll / Presets</span>
+                    </Link>
+
+                    <Link
+                      href="/settings"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2 p-2 rounded hover:bg-surface-container text-on-surface transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-secondary">
+                        settings
+                      </span>
+                      <span>Library Desk Settings</span>
+                    </Link>
+                  </div>
+
+                  <div className="pt-2 border-t border-secondary/20">
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-tertiary-container/20 text-tertiary hover:bg-tertiary-container/30 font-code-ledger text-[12px] font-semibold transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">logout</span>
+                      <span>Close Register (Sign Out)</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-          <div className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-secondary/60 shadow bg-secondary/20">
-            <Image
-              src="/images/archivist.png"
-              alt="Archivist Eleanor Vance"
-              width={36}
-              height={36}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        </div>
+        ) : (
+          <Link
+            href="/login"
+            className="flex items-center gap-1.5 px-space-md py-1.5 bg-primary text-secondary-fixed rounded-lg border border-secondary font-body-sm font-semibold hover:bg-primary-container transition-colors shadow"
+          >
+            <span className="material-symbols-outlined text-[18px]">key</span>
+            <span>Sign In to Register</span>
+          </Link>
+        )}
       </div>
     </header>
   );
